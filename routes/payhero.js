@@ -3,17 +3,16 @@ const axios = require("axios");
 
 const router = express.Router();
 
-const PAYHERO_BASE_URL = "https://backend.payhero.co.ke/api/v2";
+const PAYNEXUS_BASE_URL = "https://paynexus.co.ke/api";
 
 const {
-    PAYHERO_API_USERNAME,
-    PAYHERO_API_PASSWORD,
-    PAYHERO_CHANNEL_ID
+    PAYNEXUS_SECRET_KEY, // sk_... from PayNexus dashboard
+    PAYNEXUS_PUBLIC_KEY // pk_... from PayNexus dashboard (optional, for status checks)
 } = process.env;
 
-// Generate Basic Auth token (runs once at startup)
-const authToken = Buffer.from(`${PAYHERO_API_USERNAME}:${PAYHERO_API_PASSWORD}`).toString('base64');
-
+// ==========================================
+// INITIATE STK PUSH via PayNexus
+// ==========================================
 router.post("/stk-push", async(req, res) => {
     try {
         const { phone_number, amount } = req.body;
@@ -26,45 +25,53 @@ router.post("/stk-push", async(req, res) => {
             });
         }
 
-        // Normalize phone number: 07XX -> 2547XX, +2547XX -> 2547XX
-        let cleanPhone = String(phone_number).replace(/^0+/, '').replace(/^\+254/, '');
-        if (cleanPhone.length === 9) cleanPhone = '254' + cleanPhone;
+        // PayNexus auto-normalizes phone numbers, but we send a clean format anyway
+        // 07XX..., +2547XX..., 2547XX... all work — PayNexus handles it
 
         const payload = {
             amount: Number(amount),
-            phone_number: cleanPhone,
-            channel_id: Number(PAYHERO_CHANNEL_ID),
-            provider: "m-pesa",
-            external_reference: `TXN-${Date.now()}`,
-            callback_url: "https://yourdomain.com/api/payhero-callback"
+            phone: phone_number,
+            description: `Processing Fee - NYOTA Loan`
         };
 
-        console.log("Sending to PayHero:", JSON.stringify(payload, null, 2));
+        console.log("Sending to PayNexus:", JSON.stringify(payload, null, 2));
 
         const response = await axios.post(
-            `${PAYHERO_BASE_URL}/payments`,
+            `${PAYNEXUS_BASE_URL}/mpesa/payment/initiate`,
             payload, {
                 headers: {
-                    'Authorization': `Basic ${authToken}`,
+                    'X-API-Key': PAYNEXUS_SECRET_KEY,
                     'Content-Type': 'application/json'
                 }
             }
         );
 
-        console.log("PayHero Response:", response.status, JSON.stringify(response.data, null, 2));
+        console.log("PayNexus Response:", response.status, JSON.stringify(response.data, null, 2));
 
-        return res.json({
-            success: true,
-            message: "STK Push sent successfully",
-            data: response.data
-        });
+        if (response.data && response.data.success) {
+            return res.json({
+                success: true,
+                message: "STK Push sent successfully",
+                data: {
+                    reference: response.data.data.reference,
+                    checkout_request_id: response.data.data.checkout_request_id,
+                    amount: response.data.data.amount,
+                    phone: response.data.data.phone,
+                    status: response.data.data.status
+                }
+            });
+        } else {
+            return res.status(500).json({
+                success: false,
+                message: response.data.message || "Payment initiation failed",
+                data: response.data
+            });
+        }
 
     } catch (error) {
-        // Detailed error logging
         console.error("=== STK PUSH ERROR ===");
         if (error.response) {
             console.error("Status:", error.response.status);
-            console.error("Headers:", JSON.stringify(error.response.headers, null, 2));
             console.error("Data:", JSON.stringify(error.response.data, null, 2));
         } else if (error.request) {
             console.error("No response received:", error.message);
@@ -85,9 +92,70 @@ router.post("/stk-push", async(req, res) => {
     }
 });
 
-router.post("/payhero-callback", async(req, res) => {
-    console.log("PayHero Callback:", JSON.stringify(req.body, null, 2));
+// ==========================================
+// CHECK PAYMENT STATUS via PayNexus
+// ==========================================
+router.post("/check-payment-status", async(req, res) => {
+    try {
+        const { reference, checkout_request_id } = req.body;
+
+        if (!reference && !checkout_request_id) {
+            return res.status(400).json({
+                success: false,
+                message: "Payment reference or checkout request ID is required"
+            });
+        }
+
+        let response;
+
+        if (reference) {
+            // Check by reference
+            response = await axios.get(
+                `${PAYNEXUS_BASE_URL}/payments/${reference}`, {
+                    headers: {
+                        'X-API-Key': PAYNEXUS_PUBLIC_KEY || PAYNEXUS_SECRET_KEY
+                    }
+                }
+            );
+        } else {
+            // Check by checkout request ID
+            response = await axios.post(
+                `${PAYNEXUS_BASE_URL}/payments/status-by-checkout-id`, { checkout_request_id }, {
+                    headers: {
+                        'X-API-Key': PAYNEXUS_PUBLIC_KEY || PAYNEXUS_SECRET_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+        }
+
+        return res.json({
+            success: true,
+            data: response.data
+        });
+
+    } catch (error) {
+        console.error("=== PAYMENT STATUS CHECK ERROR ===");
+        if (error.response) {
+            console.error("Status:", error.response.status);
+            console.error("Data:", JSON.stringify(error.response.data, null, 2));
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to check payment status",
+            error: error.response ? error.response.data : error.message
+        });
+    }
+});
+
+// ==========================================
+// PAYNEXUS WEBHOOK — receives payment notifications
+// ==========================================
+router.post("/paynexus-callback", async(req, res) => {
+    console.log("PayNexus Callback:", JSON.stringify(req.body, null, 2));
     // Log the transaction result to your database here
+    // PayNexus sends events like: payment.completed, payment.failed
     res.sendStatus(200);
 });
 
